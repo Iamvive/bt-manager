@@ -11,7 +11,7 @@ struct HeadphoneAudioControlView: View {
                 .font(.system(size: 9, weight: .bold))
                 .foregroundColor(.secondary)
 
-            // Mic Mute & Sidetone Controls Row
+            // Mic Mute Control Row
             HStack(spacing: 8) {
                 Button(action: { audioControl.toggleMicMute() }) {
                     Label(audioControl.isMicMuted ? "MIC MUTED" : "MUTE MIC", systemImage: audioControl.isMicMuted ? "mic.slash.fill" : "mic.fill")
@@ -24,50 +24,41 @@ struct HeadphoneAudioControlView: View {
 
                 Spacer()
 
-                Toggle(isOn: Binding(
-                    get: { audioControl.isSidetoneEnabled },
-                    set: { _ in audioControl.toggleSidetone() }
-                )) {
-                    Text("🎧 Sidetone")
-                        .font(.system(size: 10, weight: .medium))
-                }
-                .toggleStyle(.checkbox)
-            }
-
-            // Sidetone Volume Slider if enabled
-            if audioControl.isSidetoneEnabled {
-                HStack(spacing: 6) {
-                    Text("Sidetone Vol:")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-
-                    Slider(value: Binding(
-                        get: { audioControl.sidetoneVolume },
-                        set: { audioControl.setSidetoneVolume($0) }
-                    ), in: 0.0...1.0)
-                    .controlSize(.mini)
-                }
+                Text("Tap knob to step")
+                    .font(.system(size: 8))
+                    .foregroundColor(.secondary)
             }
 
             Divider()
 
-            // Bass Boost Slider
-            VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text("🔊 Bass Boost Level")
-                        .font(.system(size: 10, weight: .semibold))
-                    Spacer()
-                    Text(String(format: "+%.1f dB", audioControl.calculatedBassGaindB))
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.blue)
-                }
+            // Rotary Dials Row (Bass & Sidetone)
+            HStack(spacing: 24) {
+                // Bass Boost Rotary Knob
+                RotaryKnobView(
+                    title: "🔊 BASS BOOST",
+                    valueText: audioControl.bassStep.rawValue,
+                    angle: bassAngle(for: audioControl.bassStep),
+                    activeColor: audioControl.bassStep == .off ? .secondary : .blue,
+                    onTap: { audioControl.cycleBassStep() },
+                    onScroll: { _ in audioControl.cycleBassStep() }
+                )
 
-                Slider(value: Binding(
-                    get: { audioControl.bassBoostLevel },
-                    set: { audioControl.setBassBoostLevel($0) }
-                ), in: 0.0...1.0)
-                .controlSize(.small)
+                Spacer()
+
+                // Sidetone Rotary Knob
+                RotaryKnobView(
+                    title: "🎧 MIC SIDETONE",
+                    valueText: audioControl.sidetoneStep.rawValue,
+                    angle: sidetoneAngle(for: audioControl.sidetoneStep),
+                    activeColor: audioControl.sidetoneStep == .off ? .secondary : .orange,
+                    onTap: { audioControl.cycleSidetoneStep() },
+                    onScroll: { _ in audioControl.cycleSidetoneStep() }
+                )
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 2)
+
+            Divider()
 
             // EQ Presets Section
             VStack(alignment: .leading, spacing: 4) {
@@ -93,5 +84,22 @@ struct HeadphoneAudioControlView: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(Color(NSColor.controlBackgroundColor))
         )
+    }
+
+    private func bassAngle(for step: BassBoostStep) -> Double {
+        switch step {
+        case .off: return -120.0
+        case .low: return -40.0
+        case .med: return 40.0
+        case .high: return 120.0
+        }
+    }
+
+    private func sidetoneAngle(for step: SidetoneStep) -> Double {
+        switch step {
+        case .off: return -120.0
+        case .low: return 0.0
+        case .high: return 120.0
+        }
     }
 }
